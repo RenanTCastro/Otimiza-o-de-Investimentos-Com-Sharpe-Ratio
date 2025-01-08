@@ -1,0 +1,1 @@
+# Otimiza-o-de-Investimentos-Com-Sharpe-Ratio

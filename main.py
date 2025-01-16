@@ -7,14 +7,27 @@ def calculate_sharpe_and_last_price(tickers, risk_free_rate=0, lookback_period='
     last_prices = []
 
     for ticker in tickers:
+        # Baixar os dados do ticker
         data = yf.download(ticker, period=lookback_period)
         if data.empty:
+            print(f"Erro: Dados não disponíveis para o ticker {ticker}")
+            sharpe_ratios.append(np.nan)
+            last_prices.append(np.nan)
+            continue
+
+        # Verificar qual coluna de preços está disponível
+        if 'Adj Close' in data.columns:
+            close_prices = data['Adj Close']
+        elif 'Close' in data.columns:
+            close_prices = data['Close']
+        else:
+            print(f"Erro: Nem 'Adj Close' nem 'Close' estão disponíveis para o ticker {ticker}")
             sharpe_ratios.append(np.nan)
             last_prices.append(np.nan)
             continue
 
         # Calcular retornos diários
-        returns = data['Adj Close'].pct_change().dropna()
+        returns = close_prices.pct_change().dropna()
 
         # Calcular Sharpe Ratio anualizado
         mean_return = returns.mean()
@@ -22,10 +35,11 @@ def calculate_sharpe_and_last_price(tickers, risk_free_rate=0, lookback_period='
         sharpe = (mean_return - risk_free_rate) / std_return * np.sqrt(252)
         sharpe_ratios.append(sharpe)
 
-        # Armazenar o último preço ajustado
-        last_prices.append(data['Adj Close'].iloc[-1])
+        # Armazenar o último preço ajustado ou de fechamento
+        last_prices.append(close_prices.iloc[-1])
 
     return np.array(sharpe_ratios), np.array(last_prices)
+
 
 # Função para gerar a população inicial
 def generate_initial_population(tickers, population_size, max_quantity=10):
@@ -51,7 +65,7 @@ def calculate_fitness(population, sharpe_ratios, prices, budget, diversification
             weighted_sharpe = np.sum(individual * sharpe_ratios)
 
             # Calcular a penalização para falta de diversificação
-            num_assets = np.count_nonzero(individual)  # Número de ativos na carteira
+            num_assets = np.count_nonzero(individual)
             max_assets = len(individual)
             diversification_penalty = (max_assets - num_assets) / max_assets
 
@@ -100,35 +114,29 @@ def differential_evolution(population, sharpe_ratios, prices, budget, F=0.8, CR=
     best_index = np.argmax(final_fitness)
     return population[best_index], final_fitness[best_index]
 
-# Execução Principal
 if __name__ == "__main__":
-    # Parâmetros iniciais
     tickers = [
         "AAPL",  # Apple
         "GOOGL",  # Alphabet (Google)
         "MSFT",  # Microsoft
         "IBM",  # IBM
+        "KO",  # Coca-Cola
         "PEP",  # PepsiCo
         "AMZN",  # Amazon
         "META",  # Meta Platforms (Facebook)
         "TSLA",  # Tesla
         "NFLX",  # Netflix
         "NVDA",  # Nvidia
-        "ORCL",  # Oracle
-        "AMD",  # Advanced Micro Devices
-        "BA",  # Boeing
-        "DIS",  # Disney
-        "JNJ",  # Johnson & Johnson
-        "CVX",  # Chevron
     ]
-    risk_free_rate = 0
+    risk_free_rate = 0.000486 # 12.25% ao ano
     lookback_period = '1y'
-    budget = 5000
     max_quantity = 100
-    population_size = 10
-    generations = 100
+
+    population_size = 100
+    generations = 300
     F = 0.8
-    CR = 0.9
+    CR = 0.7
+    budget = 5000
 
     # Calcular Sharpe Ratio e preços das ações
     sharpe_ratios, prices = calculate_sharpe_and_last_price(tickers, risk_free_rate, lookback_period)

@@ -75,7 +75,7 @@ def calculate_fitness(population, sharpe_ratios, prices, budget, diversification
     return np.array(fitness)
 
 # Função de evolução diferencial
-def differential_evolution(population, sharpe_ratios, prices, budget, F=0.8, CR=0.9, generations=100):
+def differential_evolution(population, sharpe_ratios, prices, budget, F=0.8, CR=0.8, generations=100):
     n_individuals, n_assets = population.shape
 
     for generation in range(generations):
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     population_size = 100
     generations = 300
     F = 0.8
-    CR = 0.7
+    CR = 0.8
     budget = 5000
 
     # Calcular Sharpe Ratio e preços das ações
